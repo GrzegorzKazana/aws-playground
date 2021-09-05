@@ -1,0 +1,32 @@
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-anatomy.html
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  Really basic CloudFormation stack deploying single s3 bucket.
+  Doing it via CF just for kicks.
+
+Parameters:
+  BucketName:
+    Type: String
+    Description: Name of the created bucket
+    Default: ap-task01-files-3
+
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: !Ref BucketName
+      Tags:
+        - Key: foo
+          Value: baz
+
+Outputs:
+  S3BucketUrl:
+      Value: !Join
+        - ''
+        - - 'https://'
+          - !GetAtt
+            - S3Bucket
+            - DomainName
+      Description: S3 bucket path
