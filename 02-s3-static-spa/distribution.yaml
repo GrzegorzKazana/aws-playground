@@ -1,0 +1,34 @@
+DistributionConfig:  # [REQUIRED] The distribution's configuration information.
+  CallerReference: '1'  # [REQUIRED] A unique value (for example, a date-time stamp) that ensures that the request can't be replayed.
+  DefaultRootObject: 'index.html' # The object that you want CloudFront to request from your origin (for example, index.
+  Origins: # [REQUIRED] A complex type that contains information about origins for this distribution.
+    Quantity: 1  # [REQUIRED] The number of origins for this distribution.
+    Items: # [REQUIRED] A list of origins.
+    - Id: 's3-website-origin'  # [REQUIRED] A unique identifier for the origin.
+      DomainName: 'ap-task02-website-1.s3-website.eu-central-1.amazonaws.com' # [REQUIRED] The domain name for the origin.
+      OriginPath: '' # An optional path that CloudFront appends to the origin domain name when CloudFront requests content from the origin.
+      CustomOriginConfig: # Use this type to specify an origin that is not an Amazon S3 bucket, with one exception.
+        HTTPPort: 80  # [REQUIRED] The HTTP port that CloudFront uses to connect to the origin.
+        HTTPSPort: 443 # [REQUIRED] The HTTPS port that CloudFront uses to connect to the origin.
+        OriginProtocolPolicy: http-only # [REQUIRED] Specifies the protocol (HTTP or HTTPS) that CloudFront uses to connect to the origin. Valid values are: http-only, match-viewer, https-only.
+  DefaultCacheBehavior: # [REQUIRED] A complex type that describes the default cache behavior if you don't specify a CacheBehavior element or if files don't match any of the values of PathPattern in CacheBehavior elements.
+    TargetOriginId: 's3-website-origin'  # [REQUIRED] The value of ID for the origin that you want CloudFront to route requests to when they use the default cache behavior.
+    ViewerProtocolPolicy: redirect-to-https # [REQUIRED] The protocol that viewers can use to access the files in the origin specified by TargetOriginId when a request matches the path pattern in PathPattern. Valid values are: allow-all, https-only, redirect-to-https.
+    Compress: true # Whether you want CloudFront to automatically compress certain files for this cache behavior.
+    CachePolicyId: '658327ea-f89d-4fab-a63d-7e88639e58f6' # The unique identifier of the cache policy that is attached to the default cache behavior. - managed 'CacheOptimized' policy
+  CustomErrorResponses: # A complex type that controls the following.
+    Quantity: 1  # [REQUIRED] The number of HTTP status codes for which you want to specify a custom error page and/or a caching duration.
+    Items: # A complex type that contains a CustomErrorResponse element for each HTTP status code for which you want to specify a custom error page and/or a caching duration.
+    - ErrorCode: 404  # [REQUIRED] The HTTP status code for which you want to specify a custom error page and/or a caching duration.
+      ResponsePagePath: '/index.html' # The path to the custom error page that you want CloudFront to return to a viewer when your origin returns the HTTP status code specified by ErrorCode, for example, /4xx-errors/403-forbidden.
+      ResponseCode: '200' # The HTTP status code that you want CloudFront to return to the viewer along with the custom error page.
+  Comment: 'This is a test distribution' # [REQUIRED] An optional comment to describe the distribution.
+  Logging: # A complex type that controls whether access logs are written for the distribution.
+    Enabled: false  # [REQUIRED] Specifies whether you want CloudFront to save access logs to an Amazon S3 bucket.
+    IncludeCookies: true # [REQUIRED] Specifies whether you want CloudFront to include cookies in access logs, specify true for IncludeCookies.
+    Bucket: '' # [REQUIRED] The Amazon S3 bucket to store the access logs in, for example, myawslogbucket.
+    Prefix: '' # [REQUIRED] An optional string that you want CloudFront to prefix to the access log filenames for this distribution, for example, myprefix/.
+  PriceClass: PriceClass_100 # The price class that corresponds with the maximum price that you want to pay for CloudFront service. Valid values are: PriceClass_100, PriceClass_200, PriceClass_All.
+  Enabled: true # [REQUIRED] From this field, you can enable or disable the selected distribution.
+  ViewerCertificate: # A complex type that determines the distribution’s SSL/TLS configuration for communicating with viewers.
+    CloudFrontDefaultCertificate: true  # If the distribution uses the CloudFront domain name such as d111111abcdef8.

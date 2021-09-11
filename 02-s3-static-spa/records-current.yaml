@@ -1,0 +1,30 @@
+ResourceRecordSets:
+- AliasTarget:
+    DNSName: <CLOUDFRONT_DNSNAME>
+    EvaluateTargetHealth: false
+    HostedZoneId: <HOSTED_ZONE_ID>
+  Name: oddly-suspicious.systems.
+  Type: A
+- Name: oddly-suspicious.systems.
+  ResourceRecords:
+  - Value: ''
+  # snip
+  TTL: 172800
+  Type: NS
+- Name: oddly-suspicious.systems.
+  ResourceRecords:
+  - Value: ''
+  # snip
+  TTL: 900
+  Type: SOA
+- Name: <CHALLENGE_RECORD_NAME>
+  ResourceRecords:
+  - Value: <CHALLENGE_RECORD_VALUE>
+  TTL: 0
+  Type: CNAME
+- AliasTarget:
+    DNSName: <CLOUDFRONT_DNSNAME>
+    EvaluateTargetHealth: false
+    HostedZoneId: <HOSTED_ZONE_ID>
+  Name: www.oddly-suspicious.systems.
+  Type: A

@@ -1,0 +1,89 @@
+DistributionConfig:
+  Aliases:
+    Quantity: 0
+  CacheBehaviors:
+    Quantity: 0
+  CallerReference: '1'
+  Comment: This is a test distribution
+  CustomErrorResponses:
+    Items:
+    - ErrorCachingMinTTL: 300
+      ErrorCode: 404
+      ResponseCode: '200'
+      ResponsePagePath: /index.html
+    Quantity: 1
+  DefaultCacheBehavior:
+    AllowedMethods:
+      CachedMethods:
+        Items:
+        - HEAD
+        - GET
+        Quantity: 2
+      Items:
+      - HEAD
+      - GET
+      Quantity: 2
+    CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+    Compress: true
+    FieldLevelEncryptionId: ''
+    FunctionAssociations:
+      Quantity: 0
+    LambdaFunctionAssociations:
+      Quantity: 0
+    SmoothStreaming: false
+    TargetOriginId: s3-website-origin
+    TrustedKeyGroups:
+      Enabled: false
+      Quantity: 0
+    TrustedSigners:
+      Enabled: false
+      Quantity: 0
+    ViewerProtocolPolicy: allow-all
+  DefaultRootObject: index.html
+  Enabled: false
+  HttpVersion: http2
+  IsIPV6Enabled: true
+  Logging:
+    Bucket: ''
+    Enabled: false
+    IncludeCookies: false
+    Prefix: ''
+  OriginGroups:
+    Quantity: 0
+  Origins:
+    Items:
+    - ConnectionAttempts: 3
+      ConnectionTimeout: 10
+      CustomHeaders:
+        Quantity: 0
+      CustomOriginConfig:
+        HTTPPort: 80
+        HTTPSPort: 443
+        OriginKeepaliveTimeout: 5
+        OriginProtocolPolicy: http-only
+        OriginReadTimeout: 30
+        OriginSslProtocols:
+          Items:
+          - TLSv1
+          - TLSv1.1
+          - TLSv1.2
+          Quantity: 3
+      DomainName: ap-task02-website-1.s3-website.eu-central-1.amazonaws.com
+      Id: s3-website-origin
+      OriginPath: ''
+      OriginShield:
+        Enabled: false
+    Quantity: 1
+  PriceClass: PriceClass_100
+  Restrictions:
+    GeoRestriction:
+      Quantity: 0
+      RestrictionType: none
+  ViewerCertificate:
+    ACMCertificateArn: <CERT_ARN>
+    Certificate: <CERT_ARN>
+    CertificateSource: acm
+    MinimumProtocolVersion: TLSv1.2_2021
+    SSLSupportMethod: sni-only
+  WebACLId: ''
+ifMatch: <ETAG>

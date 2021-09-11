@@ -1,0 +1,27 @@
+HostedZoneId: '<HOSTED_ZONE_ID>'  # [REQUIRED] The ID of the hosted zone that contains the resource record sets that you want to change.
+ChangeBatch: # [REQUIRED] A complex type that contains an optional comment and the Changes element.
+  Comment: 'Clean up'  #  Optional.
+  Changes: # [REQUIRED] Information about the changes to make to the record sets.
+  - Action: DELETE  # [REQUIRED] The action to perform. Valid values are: CREATE, DELETE, UPSERT.
+    ResourceRecordSet: # [REQUIRED] Information about the resource record set to create, delete, or update.
+      Name: oddly-suspicious.systems.
+      Type: A
+      AliasTarget:
+        DNSName: <CLOUDFRONT_DNSNAME>
+        EvaluateTargetHealth: false
+        HostedZoneId: <HOSTED_ZONE_ID>
+  - Action: DELETE
+    ResourceRecordSet:
+      Name: <CHALLENGE_RECORD_NAME>
+      Type: CNAME
+      ResourceRecords:
+      - Value: <CHALLENGE_RECORD_VALUE>
+      TTL: 0
+  - Action: DELETE
+    ResourceRecordSet:
+      Name: www.oddly-suspicious.systems.
+      Type: A
+      AliasTarget:
+        DNSName: <CLOUDFRONT_DNSNAME>
+        EvaluateTargetHealth: false
+        HostedZoneId: <HOSTED_ZONE_ID>

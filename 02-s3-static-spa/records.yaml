@@ -1,0 +1,20 @@
+HostedZoneId: <HOSTED_ZONE_ID>  # [REQUIRED] The ID of the hosted zone that contains the resource record sets that you want to change.
+ChangeBatch: # [REQUIRED] A complex type that contains an optional comment and the Changes element.
+  Comment: 'Configure alias for (www.)oddly-suspicious.systems'  #  Optional.
+  Changes: # [REQUIRED] Information about the changes to make to the record sets.
+  - Action: CREATE  # [REQUIRED] The action to perform. Valid values are: CREATE, DELETE, UPSERT.
+    ResourceRecordSet: # [REQUIRED] Information about the resource record set to create, delete, or update.
+      Name: 'oddly-suspicious.systems'  # [REQUIRED] For ChangeResourceRecordSets requests, the name of the record that you want to create, update, or delete.
+      Type: A # [REQUIRED] The DNS record type. Valid values are: SOA, A, TXT, NS, CNAME, MX, NAPTR, PTR, SRV, SPF, AAAA, CAA, DS.
+      AliasTarget: #  Alias resource record sets only.
+        HostedZoneId: '<HOSTED_ZONE_ID>'  # [REQUIRED]  Alias resource records sets only. - '<HOSTED_ZONE_ID>' is hosted zone for all cloudfront aliases
+        DNSName: <CLOUDFRONT_DNSNAME> # [REQUIRED]  Alias resource record sets only.
+        EvaluateTargetHealth: false # [REQUIRED]  Applies only to alias, failover alias, geolocation alias, latency alias, and weighted alias resource record sets.
+  - Action: CREATE  # [REQUIRED] The action to perform. Valid values are: CREATE, DELETE, UPSERT.
+    ResourceRecordSet: # [REQUIRED] Information about the resource record set to create, delete, or update.
+      Name: 'www.oddly-suspicious.systems'  # [REQUIRED] For ChangeResourceRecordSets requests, the name of the record that you want to create, update, or delete.
+      Type: A # [REQUIRED] The DNS record type. Valid values are: SOA, A, TXT, NS, CNAME, MX, NAPTR, PTR, SRV, SPF, AAAA, CAA, DS.
+      AliasTarget: #  Alias resource record sets only.
+        HostedZoneId: '<HOSTED_ZONE_ID>'  # [REQUIRED]  Alias resource records sets only. - '<HOSTED_ZONE_ID>' is hosted zone for all cloudfront aliases
+        DNSName: <CLOUDFRONT_DNSNAME> # [REQUIRED]  Alias resource record sets only.
+        EvaluateTargetHealth: false # [REQUIRED]  Applies only to alias, failover alias, geolocation alias, latency alias, and weighted alias resource
