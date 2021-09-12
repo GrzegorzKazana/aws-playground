@@ -1,0 +1,169 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  Stack definition for deploying static website to s3 bucket and cloudfront distribution using ACM certificate.
+
+Parameters:
+  DomainName:
+    Type: String
+    Description: Domain for which the certificate is requested. (e.g. `example.com`)
+  EnableHttps:
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
+  EnableDistributionCerts:
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: >
+      If set to 'true', it will install aliases and `ViewerCertificate` on the distribution.
+      Since we deploy a hosted zone which validates our certificate, we cannot at the same time use the certificate.
+      You need to deploy this stack twice (deploy + update), first time with `EnableDistributionCerts=false`,
+      then `EnableDistributionCerts=true`.
+  HttpsAcmCertificateARN:
+    Type: String
+    Default: ''
+    Description: >
+      If you want this site to be https enabled, you need to pass arn of certificate
+      created in the `us-east-1` region for this domain manually.
+      Required if EnableHttps is 'true'
+  CertDnsChallengeName:
+    Type: String
+    Default: ''
+    Description: CNAME record name for certificate validation. Required if EnableHttps is 'true'
+  CertDnsChallengeValue:
+    Type: String
+    Default: ''
+    Description: CNAME record value for certificate validation. Required if EnableHttps is 'true'
+  CloudfrontHostedZone:
+    Type: String
+    Default: Z2FDTNDATAQYW2
+    Description: >
+      Hosted zone of all cloudfront distributions.
+      https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-route53-aliastarget.html
+  DistributionCachePolicyId:
+    Type: String
+    Default: '658327ea-f89d-4fab-a63d-7e88639e58f6'
+    Description: >
+      Uses by default 'CacheOptimized' policy
+      https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html
+
+Conditions:
+  ShouldEnableHttps:
+    !Equals ['true', !Ref EnableHttps]
+  DistributionCerts:
+    !And [!Equals ['true', !Ref EnableDistributionCerts], !Equals ['true', !Ref EnableHttps]]
+
+Rules:
+  ProvidedCertificateAndChallengeRecords:
+    RuleCondition: !Equals ['true', !Ref EnableHttps]
+    Assertions:
+    - Assert: !Not [!Equals ['', !Ref HttpsAcmCertificateARN]]
+      AssertDescription: When using Https, you need to provide `HttpsAcmCertificateARN`
+    - Assert: !Not [!Equals ['', !Ref CertDnsChallengeName]]
+      AssertDescription: When using Https, you need to provide `CertDnsChallengeName`
+    - Assert: !Not [!Equals ['', !Ref CertDnsChallengeValue]]
+      AssertDescription: When using Https, you need to provide `CertDnsChallengeValue`
+
+Resources:
+  HostedZone:
+    Type: AWS::Route53::HostedZone
+    Properties:
+      Name: !Ref DomainName
+      HostedZoneConfig:
+        Comment: !Sub Hosted zone for ${DomainName}
+
+  DnsRecords:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: !Ref HostedZone
+      RecordSets:
+      - Name: !Ref DomainName
+        Type: A
+        AliasTarget:
+          HostedZoneId: !Ref CloudfrontHostedZone
+          DNSName: !GetAtt Distribution.DomainName
+          EvaluateTargetHealth: false
+      - Name: !Sub www.${DomainName}
+        Type: A
+        AliasTarget:
+          HostedZoneId: !Ref CloudfrontHostedZone
+          DNSName: !GetAtt Distribution.DomainName
+          EvaluateTargetHealth: false
+      - !If
+        - ShouldEnableHttps
+        - Name: !Ref CertDnsChallengeName
+          Type: CNAME
+          TTL: 0
+          ResourceRecords:
+          - !Ref CertDnsChallengeValue
+        - !Ref AWS::NoValue
+
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        Origins:
+          - DomainName: !Select [1, !Split ['http://', !GetAtt WebsiteBucket.WebsiteURL]]
+            Id: bucket-main-origin
+            CustomOriginConfig:
+              OriginProtocolPolicy: http-only
+              HTTPPort: 80
+        Aliases:
+          !If
+            - DistributionCerts
+            - - !Ref DomainName
+              - !Sub www.${DomainName}
+            - []
+        DefaultCacheBehavior:
+          TargetOriginId: bucket-main-origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId: !Ref DistributionCachePolicyId
+        CustomErrorResponses:
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: '/index.html'
+        PriceClass: PriceClass_100
+        ViewerCertificate:
+          !If
+            - DistributionCerts
+            - AcmCertificateArn: !Ref HttpsAcmCertificateARN
+              MinimumProtocolVersion: TLSv1
+              SslSupportMethod: sni-only
+            - !Ref AWS::NoValue
+
+  WebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: !Ref DomainName
+      WebsiteConfiguration:
+        IndexDocument: index.html
+
+  WebsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebsiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal: '*'
+          Action:
+          - "s3:GetObject"
+          Resource: !Sub 'arn:aws:s3:::${WebsiteBucket}/*'
+
+Outputs:
+  BucketUrl:
+    Value: !GetAtt WebsiteBucket.DomainName
+  WebsiteBucketUrl:
+    Value: !GetAtt WebsiteBucket.WebsiteURL
+  CloudfrontDistribution:
+    Value: !GetAtt Distribution.DomainName
+  DomainUrl:
+    Value: !Ref DomainName
+  NameServers:
+    Value: !Join ['\n', !GetAtt HostedZone.NameServers]

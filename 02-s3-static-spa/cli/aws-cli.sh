@@ -1,7 +1,7 @@
 # 1. create an s3 website bucket
 aws s3api create-bucket --bucket ap-task02-website-1 --region eu-central-1 --create-bucket-configuration LocationConstraint=eu-central-1
 # 2. upload an index html page along with some static resources
-aws s3 cp ./public/ s3://ap-task02-website-1/ --recursive
+aws s3 cp ../public/ s3://ap-task02-website-1/ --recursive
 # 3. configure it for serving webpages
 #     1. create an index file
 #     2. handle client side routing (fallback to index)
@@ -39,7 +39,7 @@ aws cloudfront update-distribution --id <DISTRO_ID> --cli-input-yaml file://dist
 
 # 5. configure CloudFront (cdn)
 # 6. upload new version of the website
-aws s3 sync public s3://ap-task02-website-1
+aws s3 sync ../public s3://ap-task02-website-1
 # 7. invalidate cdn cache
 aws cloudfront create-invalidation --distribution-id <DISTRO_ID> --paths '/*'
 # 8. clean up
