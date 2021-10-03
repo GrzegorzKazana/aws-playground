@@ -1,19 +1,19 @@
-variable "app_image" {
-  type        = string
-  description = "full repostiory url including tag, e.g. <id>.dkr.ecr.<region>.amazonaws.com/someimage:latest"
+variable "availability_zone_count" {
+  default = 2
 }
 
-variable "proxy_image" {
-  type        = string
-  description = "full repostiory url including tag, e.g. <id>.dkr.ecr.<region>.amazonaws.com/someimage:latest"
+variable "enable_task_exec" {
+  default = true
 }
 
-variable "availability_count" {
-  type        = number
-  description = "number of availability zones to which the app will be deployed"
-  default     = 2
+variable "deploy_services" {
+  default = true
 }
 
-locals {
-  services = toset(["app", "proxy"])
+variable "app_image_tag" {
+  default = "latest"
+}
+
+variable "proxy_image_tag" {
+  default = "latest"
 }

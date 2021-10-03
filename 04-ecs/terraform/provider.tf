@@ -1,6 +1,3 @@
-
-data "aws_region" "current" {}
-
 terraform {
   required_providers {
     aws = {
