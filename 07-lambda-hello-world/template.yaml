@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: 'AWS::Serverless-2016-10-31'
+
+Parameters:
+  RestApiStageName:
+    Default: default
+    Type: String
+
+Resources:
+  RestImplicitProxyImpl:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: rest-implicit-proxy-integration-template.yaml
+
+  RestExplicitProxyImpl:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: rest-explicit-proxy-integration-template.yaml
+
+Outputs:
+  Data:
+    Value: !Sub |
+      REST Api (v1) implicit lambda proxy invocation:
+
+        Fn:       ${RestImplicitProxyImpl.Outputs.FunctionId}
+        Endpoint: ${RestImplicitProxyImpl.Outputs.Endpoint}
+        Example:  ${RestImplicitProxyImpl.Outputs.Example}
+
+      REST Api (v1) explicit lambda proxy invocation:
+
+        Fn:       ${RestExplicitProxyImpl.Outputs.FunctionId}
+        Endpoint: ${RestExplicitProxyImpl.Outputs.Endpoint}
+        Example:  ${RestExplicitProxyImpl.Outputs.Example}

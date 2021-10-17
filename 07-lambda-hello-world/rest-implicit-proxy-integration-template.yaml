@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: 'AWS::Serverless-2016-10-31'
+
+Parameters:
+  RestApiStageName:
+    Type: String
+    Default: default
+
+Resources:
+  RestProxyFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs14.x
+      Handler: index.restProxy
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      Events:
+        default:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RestApi
+            Method: any
+            Path: /proxy-integration
+
+  # Just to set explicit stage name, otherwise this resource could be omitted
+  # default stage would be then Prod
+  RestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref RestApiStageName
+
+Outputs:
+  Endpoint:
+    Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${RestApiStage}"
+  Example:
+    Value: !Sub "curl 'https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${RestApiStage}/proxy-integration?name=foo'"
+  FunctionId:
+    Value: !Ref RestProxyFn

@@ -1,0 +1,11 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "lambda-hello-world"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1t0aro7q3mqo2"
+s3_prefix = "lambda-hello-world"
+region = "eu-central-1"
+confirm_changeset = true
+capabilities = ["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"]
+image_repositories = []

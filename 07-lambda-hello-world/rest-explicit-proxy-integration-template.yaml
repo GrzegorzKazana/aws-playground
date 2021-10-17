@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: 'AWS::Serverless-2016-10-31'
+
+Parameters:
+  RestApiStageName:
+    Type: String
+    Default: default
+
+Resources:
+  RestProxyFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs14.x
+      Handler: index.restProxy
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      Events:
+        explicit:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RestApi
+            Method: any
+            Path: /explicit-proxy-integration
+
+  RestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref RestApiStageName
+      DefinitionBody:
+        openapi: 3.0.1
+        paths:
+          # NOTE: if we would declare multiple endpoints in `AWS::Serverless::Function.Properties.Events`
+          # all of them (even ones with intended defaults) would need to be declared in `DefinitionBody.paths`
+          /explicit-proxy-integration:
+            x-amazon-apigateway-any-method:
+              x-amazon-apigateway-integration:
+                type: aws_proxy
+                # must be POST https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-swagger-extensions-integration.html
+                httpMethod: POST
+                passthroughBehavior: when_no_match
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RestProxyFn.Arn}/invocations"
+
+Outputs:
+  Endpoint:
+    Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${RestApiStage}"
+  Example:
+    Value: !Sub "curl 'https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${RestApiStage}/explicit-proxy-integration?name=foo'"
+  FunctionId:
+    Value: !Ref RestProxyFn
