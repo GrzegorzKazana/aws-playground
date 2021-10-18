@@ -1,0 +1,81 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: 'AWS::Serverless-2016-10-31'
+
+Parameters:
+  RestApiStageName:
+    Type: String
+    Default: default
+
+Resources:
+  RestCustomFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs14.x
+      Handler: index.restCustom
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      Events:
+        explicit:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RestApi
+            Method: any
+            Path: /explicit-custom-integration
+
+  RestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref RestApiStageName
+      DefinitionBody:
+        openapi: 3.0.1
+        paths:
+          # some other examples for context: https://github.com/mindit-io/aws-sam-serverless-services
+          /explicit-custom-integration:
+            x-amazon-apigateway-any-method:
+              responses:
+                  "200": {}
+              parameters:
+                - in: query
+                  name: name
+                  required: true
+              x-amazon-apigateway-request-validator: all  # do not forget to create `x-amazon-apigateway-any-method.parameters` ...
+              x-amazon-apigateway-integration:
+                type: aws
+                # must be POST https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-swagger-extensions-integration.html
+                httpMethod: POST
+                passthroughBehavior: when_no_match
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RestCustomFn.Arn}/invocations"
+              # https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-swagger-extensions-integration-requestParameters.html
+                requestParameters:
+                  # `true` means parameter is required
+                  method.request.querystring.name: true
+                requestTemplates:
+                  application/json: |
+                    {
+                      "name": "$input.params('name')"
+                    }
+                responses:
+                  default:
+                    statusCode: 200 # do not forget to create `x-amazon-apigateway-any-method.responses` ...
+                    responseTemplates:
+                      application/json: |
+                        #set ($root=$input.path('$'))
+                        {
+                          "message": "$root.msg"
+                        }
+
+        x-amazon-apigateway-request-validators:
+          all:
+            validateRequestBody: true
+            validateRequestParameters: true
+
+
+
+
+Outputs:
+  Endpoint:
+    Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${RestApiStage}"
+  Example:
+    Value: !Sub "curl 'https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${RestApiStage}/explicit-custom-integration?name=foo'"
+  FunctionId:
+    Value: !Ref RestCustomFn

@@ -7,3 +7,11 @@ module.exports.restProxy = async (event, _ctx) => {
 
     return { statusCode: 200, body: JSON.stringify({ msg: `Hello ${name}` }) };
 };
+
+// REST Api (v1), custom lambda integration
+//
+// event is whole http request https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format
+// returned body must be stringified https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-output-format
+module.exports.restCustom = async (event, _ctx) => {
+    return { msg: `Hello ${event.name}` };
+};
