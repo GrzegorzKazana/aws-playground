@@ -22,6 +22,11 @@ Resources:
     Properties:
       Location: rest-explicit-custom-integration-template.yaml
 
+  HttpImplicitProxyImpl:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: http-implicit-proxy-integration-template.yaml
+
 Outputs:
   Data:
     Value: !Sub |
@@ -42,3 +47,9 @@ Outputs:
         Fn:       ${RestExplicitCustomImpl.Outputs.FunctionId}
         Endpoint: ${RestExplicitCustomImpl.Outputs.Endpoint}
         Example:  ${RestExplicitCustomImpl.Outputs.Example}
+
+      HTTP Api (v2) implicit lambda proxy invocation:
+
+        Fn:       ${HttpImplicitProxyImpl.Outputs.FunctionId}
+        Endpoint: ${HttpImplicitProxyImpl.Outputs.Endpoint}
+        Example:  ${HttpImplicitProxyImpl.Outputs.Example}
