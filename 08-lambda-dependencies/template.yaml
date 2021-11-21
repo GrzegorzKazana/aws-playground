@@ -1,0 +1,147 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: 'AWS::Serverless-2016-10-31'
+
+Resources:
+  # 1
+  AppFunctionDeps:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs14.x
+      CodeUri: ./app-with-deps
+      Handler: index.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      Events:
+        rootpath:
+          Type: HttpApi
+          Properties:
+            Method: any
+            Path: /deps
+        catchall:
+          Type: HttpApi
+          Properties:
+            Method: any
+            Path: /deps/{proxy+}
+
+  # 2
+  AppDepsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: app-with-deps-layers
+      CompatibleRuntimes: [nodejs14.x]
+    Metadata:
+      BuildMethod: makefile
+
+  AppFunctionDepsLayer:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs14.x
+      CodeUri: ./app-with-deps-layers
+      Handler: index.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      Layers:
+        - !Ref AppDepsLayer
+      Events:
+        rootpath:
+          Type: HttpApi
+          Properties:
+            Method: any
+            Path: /deps-layers
+        catchall:
+          Type: HttpApi
+          Properties:
+            Method: any
+            Path: /deps-layers/{proxy+}
+    Metadata:
+      BuildMethod: makefile
+
+  # 3
+  AppFunctionTs:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs14.x
+      CodeUri: ./app-with-deps-ts
+      Handler: dist/index.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      Events:
+        rootpath:
+          Type: HttpApi
+          Properties:
+            Method: any
+            Path: /deps-ts
+        catchall:
+          Type: HttpApi
+          Properties:
+            Method: any
+            Path: /deps-ts/{proxy+}
+    Metadata:
+      BuildMethod: makefile
+
+  # 4
+  AppFunctionNative:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      CodeUri: ./app-with-deps-ts
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      Timeout: 60
+      # otherwise you may experience some issues, e.g. `Protocol error (Target.setDiscoverTargets): Target closed.`
+      MemorySize: 1024
+      Events:
+        rootpath:
+          Type: HttpApi
+          Properties:
+            Method: any
+            Path: /deps-native
+        catchall:
+          Type: HttpApi
+          Properties:
+            Method: any
+            Path: /deps-native/{proxy+}
+    Metadata:
+      # not really documented, leaving for future reference
+      # DockerBuildTarget: prod
+      DockerTag: latest
+      Dockerfile: Dockerfile
+      DockerContext: ./app-with-native-deps
+
+  # 5
+  AppFunctionPublicLayer:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs14.x
+      CodeUri: ./app-with-public-layer
+      Handler: index.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      Timeout: 60
+      Layers:
+        # https://github.com/shelfio/chrome-aws-lambda-layer
+        - "arn:aws:lambda:eu-central-1:764866452798:layer:chrome-aws-lambda:25"
+      Events:
+        rootpath:
+          Type: HttpApi
+          Properties:
+            Method: any
+            Path: /deps-public
+        catchall:
+          Type: HttpApi
+          Properties:
+            Method: any
+            Path: /deps-public/{proxy+}
+    Metadata:
+      BuildMethod: makefile
+
+Outputs:
+  Endpoint:
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+  FunctionIds:
+    Value: !Sub |
+      AppFunctionDeps:        ${AppFunctionDeps}
+      AppDepsLayer:           ${AppDepsLayer}
+      AppFunctionTs:          ${AppFunctionTs}
+      AppFunctionNative:      ${AppFunctionNative}
+      AppFunctionPublicLayer: ${AppFunctionPublicLayer}

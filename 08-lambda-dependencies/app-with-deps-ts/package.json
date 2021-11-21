@@ -1,0 +1,23 @@
+{
+    "name": "app",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "build": "tsc",
+        "dev": "tsc -w --preserveWatchOutput"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "is-odd": "^3.0.1"
+    },
+    "devDependencies": {
+        "@types/aws-lambda": "^8.10.85",
+        "@types/is-odd": "^3.0.0",
+        "@types/node": "^16.11.9",
+        "typescript": "^4.5.2"
+    }
+}

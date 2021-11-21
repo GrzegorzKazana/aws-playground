@@ -1,0 +1,14 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "lambda-s3-task-08"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1t0aro7q3mqo2"
+s3_prefix = "lambda-s3-task-08"
+region = "eu-central-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+image_repositories = ["AppFunctionNative=255573642349.dkr.ecr.eu-central-1.amazonaws.com/lambdas3task080272f94a/appfunctionnative833f673crepo"]
+
+[default.local_start_api.parameters]
+warm_containers = "EAGER"
