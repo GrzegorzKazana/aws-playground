@@ -1,0 +1,148 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: 'AWS::Serverless-2016-10-31'
+
+Parameters:
+  RestApiStageName:
+    Type: String
+    Default: default
+
+Resources:
+  PostTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: posts-table
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+      GlobalSecondaryIndexes:
+        - IndexName: user-reference-index
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+          Projection:
+            ProjectionType: KEYS_ONLY
+          ProvisionedThroughput:
+            ReadCapacityUnits: 1
+            WriteCapacityUnits: 1
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      StreamSpecification:
+        StreamViewType: KEYS_ONLY
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs14.x
+      Handler: ./src/api.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - &db_table_policy
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:BatchGetItem
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:BatchWriteItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                # just for debugging
+                - dynamodb:Scan
+              Resource:
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PostTable}"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PostTable}/index/*"
+      Environment:
+        Variables:
+          DYNAMODB_ENDPOINT: ''
+      Events:
+        default:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RestApi
+            Method: any
+            Path: /
+        default:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RestApi
+            Method: any
+            Path: /{proxy+}
+
+  # Just to set explicit stage name, otherwise this resource could be omitted
+  # default stage would be then Prod
+  RestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref RestApiStageName
+
+  UserSyncFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs14.x
+      Handler: ./src/stream.handler
+      Policies:
+        - AWSLambdaDynamoDBExecutionRole
+        - *db_table_policy
+      Environment:
+        Variables:
+          DYNAMODB_ENDPOINT: ''
+      Events:
+        Stream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt PostTable.StreamArn
+            BatchSize: 100
+            StartingPosition: TRIM_HORIZON
+            # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-eventsourcemapping.html#cfn-lambda-eventsourcemapping-filtercriteria
+            # https://docs.aws.amazon.com/lambda/latest/dg/invocation-eventfiltering.html#filtering-streams
+            FilterCriteria:
+              Filters:
+                - Pattern: '{"eventName": ["MODIFY"], "dynamodb": {"Keys": {"PK": {"S": [{"prefix": "user#"}]}, "SK": {"S": ["METADATA"]}}}}'
+
+  DatabaseSeedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs14.x
+      Handler: ./src/seed.handler
+      Policies:
+        - AWSLambdaDynamoDBExecutionRole
+        - *db_table_policy
+      Environment:
+        Variables:
+          DYNAMODB_ENDPOINT: ''
+
+  DatabasePurgeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs14.x
+      Handler: ./src/seed.handler
+      Policies:
+        - AWSLambdaDynamoDBExecutionRole
+        - *db_table_policy
+      Environment:
+        Variables:
+          DYNAMODB_ENDPOINT: ''
+
+Outputs:
+  Endpoint:
+    Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${RestApiStage}"
+  ApiFunction:
+    Value: !Ref ApiFunction
+  UserSyncFunction:
+    Value: !Ref UserSyncFunction
+  DatabaseSeedFunction:
+    Value: !Ref DatabaseSeedFunction
+  DatabasePurgeFunction:
+    Value: !Ref DatabasePurgeFunction

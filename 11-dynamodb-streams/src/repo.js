@@ -49,12 +49,17 @@ class Repository {
         }).then(res => ({ ...res, id }));
     }
 
+    listUsers() {
+        /** For debugging only */
+        return this.User.scan({});
+    }
+
     getUserInfo(userId) {
         return this.User.get({ id: userId });
     }
 
     getUserPosts(userId) {
-        return this.User.query(`user#${userId}`, { beginsWith: 'post#' });
+        return this.Post.query(`user#${userId}`, { beginsWith: 'post#' });
     }
 
     getPostComments(postId) {
@@ -69,6 +74,14 @@ class Repository {
         return this.User.update({
             id: userId,
             email,
+        });
+    }
+
+    updatePost(userId, postId, content) {
+        return this.Post.update({
+            id: postId,
+            userId,
+            content,
         });
     }
 
@@ -160,6 +173,8 @@ class Repository {
 
         return { table, User, Post, Comment };
     }
+
+    batch = batch;
 }
 
 module.exports = Repository;

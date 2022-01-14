@@ -1,9 +1,12 @@
 {
+    "name": "11-dynamodb-streams",
+    "version": "0.1.0",
     "dependencies": {
         "dynamodb-toolbox": "^0.3.5",
         "lambda-api": "^0.11.2"
     },
     "devDependencies": {
+        "@types/aws-lambda": "^8.10.89",
         "aws-sdk": "^2.1053.0"
     }
 }

@@ -23,3 +23,8 @@ Alternatives:
 -   _DynamoDB Streams_
 -   _Api Gateway_
 -   _AWS Lambda_
+
+## tips
+
+-   `docker run --rm -p '8000:8000' amazon/dynamodb-local -jar DynamoDBLocal.jar -sharedDb -dbPath .`
+-   `sam local start-api -n env.json --warm-containers EAGER`
