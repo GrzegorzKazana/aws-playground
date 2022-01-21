@@ -1,0 +1,9 @@
+{
+    "devDependencies": {
+        "@types/aws-lambda": "^8.10.90",
+        "aws-sdk": "^2.1061.0"
+    },
+    "dependencies": {
+        "parse-multipart": "^1.0.4"
+    }
+}

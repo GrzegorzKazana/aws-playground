@@ -1,0 +1,98 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: 'AWS::Serverless-2016-10-31'
+
+Parameters:
+  RestApiStageName:
+    Type: String
+    Default: default
+
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      # https://docs.aws.amazon.com/AmazonS3/latest/userguide/acl-overview.html#canned-acl
+      AccessControl: PublicRead
+      BucketName: task-12-bucket
+
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref Bucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action:
+              - s3:GetObject
+            Resource:
+              - !Sub "${Bucket.Arn}/*"
+
+  DirectUploadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs14.x
+      Handler: ./direct.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - &bucketRwObjectPolicy
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:PutObject
+              Resource:
+                - !Sub "${Bucket.Arn}"
+                - !Sub "${Bucket.Arn}/*"
+      Events:
+        default:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RestApi
+            Method: put
+            Path: /direct/{key}
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref Bucket
+
+  SignedUploadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs14.x
+      Handler: ./signed.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - *bucketRwObjectPolicy
+      Events:
+        default:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RestApi
+            Method: get
+            Path: /signed/{key}
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref Bucket
+
+  RestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref RestApiStageName
+      # https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-payload-encodings-workflow.html
+      BinaryMediaTypes:
+        - image/*
+        - multipart/*
+        - application/*
+
+Outputs:
+  Endpoint:
+    Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${RestApiStage}"
+  BucketDomain:
+    Value: !GetAtt Bucket.DomainName
+  BucketRegionalDomain:
+    Value: !GetAtt Bucket.RegionalDomainName
+  DirectUploadFunction:
+    Value: !Ref DirectUploadFunction
+  SignedUploadFunction:
+    Value: !Ref SignedUploadFunction

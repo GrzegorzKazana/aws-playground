@@ -1,0 +1,13 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "task-12-stack"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1t0aro7q3mqo2"
+s3_prefix = "task-12-stack"
+region = "eu-central-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+disable_rollback = true
+parameter_overrides = "RestApiStageName=\"default\""
+image_repositories = []
