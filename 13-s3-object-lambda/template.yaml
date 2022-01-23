@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: 'AWS::Serverless-2016-10-31'
+
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: task-13-bucket
+
+  SupportingAccessPoint:
+    Type: AWS::S3::AccessPoint
+    Properties:
+      Bucket: !Ref Bucket
+
+  LambdaAccessPoint:
+    Type: AWS::S3ObjectLambda::AccessPoint
+    Properties:
+      ObjectLambdaConfiguration:
+        SupportingAccessPoint: !GetAtt SupportingAccessPoint.Arn
+        TransformationConfigurations:
+          - Actions: [GetObject]
+            ContentTransformation:
+              AwsLambda:
+                FunctionArn: !GetAtt TransformFunction.Arn
+
+  TransformFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs14.x
+      Handler: ./index.handler
+      # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html
+      # https://docs.aws.amazon.com/AmazonS3/latest/userguide/olap-policies.html
+      # https://aws.permissions.cloud/managedpolicies/AmazonS3ObjectLambdaExecutionRolePolicy
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AmazonS3ObjectLambdaExecutionRolePolicy
+        - S3ReadPolicy:
+            BucketName: !Ref Bucket
+      MemorySize: 256
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref Bucket
+
+Outputs:
+  BucketDomain:
+    Value: !GetAtt Bucket.DomainName
+  BucketRegionalDomain:
+    Value: !GetAtt Bucket.RegionalDomainName
+  TransformFunction:
+    Value: !Ref TransformFunction
+  AccessPoint:
+    Value: !Ref LambdaAccessPoint
+  AccessPointArn:
+    Value: !GetAtt LambdaAccessPoint.Arn

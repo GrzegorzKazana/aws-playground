@@ -1,0 +1,12 @@
+{
+    "name": "task-13",
+    "version": "0.10.0",
+    "devDependencies": {
+        "@types/aws-lambda": "^8.10.91",
+        "@types/sharp": "^0.29.5",
+        "aws-sdk": "^2.1062.0"
+    },
+    "dependencies": {
+        "sharp": "^0.29.3"
+    }
+}
