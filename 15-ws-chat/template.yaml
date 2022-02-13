@@ -1,0 +1,284 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: 'AWS::Serverless-2016-10-31'
+
+# inspiration taken from
+# https://github.com/aws-samples/simple-websockets-chat-app/blob/master/template.yaml
+
+Resources:
+  ChatTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: task15-chat
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: PK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 1
+            WriteCapacityUnits: 1
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  # API
+  WebSocketApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: task15-websocket-api
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: "$request.body.action"
+
+  WebSocketApiDeployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+      - JoinRoute
+      - LeaveRoute
+      - PostMessageRoute
+      - DisconnectRoute
+      - DefaultRoute
+    Properties:
+      ApiId: !Ref WebSocketApi
+
+  WebSocketStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref WebSocketApi
+      StageName: $default
+      DeploymentId: !Ref WebSocketApiDeployment
+
+  # JOIN FN
+  JoinRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketApi
+      RouteKey: join
+      AuthorizationType: NONE
+      Target: !Sub integrations/${JoinIntegration}
+
+  JoinIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${JoinFunction.Arn}/invocations
+
+  JoinFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs14.x
+      CodeUri: ./src/
+      Handler: index.join
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-template-list.html
+        - DynamoDBCrudPolicy:
+            tableName: !Ref ChatTable
+        - &post_to_connection_policy
+          Statement:
+            Action:
+              - 'execute-api:ManageConnections'
+            Resource:
+              - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SimpleChatWebSocket}/*'
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ChatTable
+
+  JoinLambdaPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn: [WebSocketApi]
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref JoinFunction
+      Principal: apigateway.amazonaws.com
+
+  # LEAVE FN
+  LeaveRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketApi
+      RouteKey: leave
+      AuthorizationType: NONE
+      Target: !Sub integrations/${LeaveIntegration}
+
+  LeaveIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LeaveFunction.Arn}/invocations
+
+  LeaveFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs14.x
+      CodeUri: ./src/
+      Handler: index.leave
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-template-list.html
+        - DynamoDBCrudPolicy:
+            tableName: !Ref ChatTable
+        - *post_to_connection_policy
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ChatTable
+
+  LeaveLambdaPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn: [WebSocketApi]
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LeaveFunction
+      Principal: apigateway.amazonaws.com
+
+  # POST_MESSAGE FN
+  PostMessageRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketApi
+      RouteKey: postMessage
+      AuthorizationType: NONE
+      Target: !Sub integrations/${PostMessageIntegration}
+
+  PostMessageIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PostMessageFunction.Arn}/invocations
+
+  PostMessageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs14.x
+      CodeUri: ./src/
+      Handler: index.postMessage
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-template-list.html
+        - DynamoDBCrudPolicy:
+            tableName: !Ref ChatTable
+        - *post_to_connection_policy
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ChatTable
+
+  PostMessageLambdaPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn: [WebSocketApi]
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref JoinFunction
+      Principal: apigateway.amazonaws.com
+
+  # DISCONNECT FN
+  DisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketApi
+      RouteKey: $disconnect
+      AuthorizationType: NONE
+      Target: !Sub integrations/${DisconnectIntegration}
+
+  DisconnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DisconnectFunction.Arn}/invocations
+
+  DisconnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs14.x
+      CodeUri: ./src/
+      Handler: index.disconnect
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-template-list.html
+        - DynamoDBCrudPolicy:
+            tableName: !Ref ChatTable
+        - *post_to_connection_policy
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ChatTable
+
+  DisconnectLambdaPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn: [WebSocketApi]
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref DisconnectFunction
+      Principal: apigateway.amazonaws.com
+
+  # DEFAULT FN
+  DefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketApi
+      RouteKey: $default
+      AuthorizationType: NONE
+      Target: !Sub integrations/${DefaultIntegration}
+
+  DefaultIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DefaultFunction.Arn}/invocations
+
+  DefaultFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs14.x
+      CodeUri: ./src/
+      Handler: index.default
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-template-list.html
+        - DynamoDBCrudPolicy:
+            tableName: !Ref ChatTable
+        - *post_to_connection_policy
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ChatTable
+
+  DefaultLambdaPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn: [WebSocketApi]
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref DefaultFunction
+      Principal: apigateway.amazonaws.com
+
+Outputs:
+  Endpoint:
+    Value: !Sub "wss://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/"
+  JoinFunction:
+    Value: !GetAtt JoinFunction.Arn
+  LeaveFunction:
+    Value: !GetAtt LeaveFunction.Arn
+  PostMessageFunction:
+    Value: !GetAtt PostMessageFunction.Arn
+  DisconnectFunction:
+    Value: !GetAtt DisconnectFunction.Arn
+  DefaultFunction:
+    Value: !GetAtt DefaultFunction.Arn
