@@ -1,6 +1,18 @@
 AWSTemplateFormatVersion: 2010-09-09
 Transform: 'AWS::Serverless-2016-10-31'
 
+Parameters:
+  WebsocketStageName:
+    Type: String
+    Default: dev
+  EnableInvocationLogs:
+    Type: String
+    Default: 'false'
+
+Conditions:
+  EnableInvocationLogs:
+    !Equals ['true', !Ref EnableInvocationLogs]
+
 # inspiration taken from
 # https://github.com/aws-samples/simple-websockets-chat-app/blob/master/template.yaml
 
@@ -61,8 +73,21 @@ Resources:
     Type: AWS::ApiGatewayV2::Stage
     Properties:
       ApiId: !Ref WebSocketApi
-      StageName: $default
+      StageName: !Ref WebsocketStageName
       DeploymentId: !Ref WebSocketApiDeployment
+      # In order for this to work, you need to have a single IAM role is configured for all API Gateway APIs in a region of your AWS account
+      # (the role does not apply to specific stage/api, therefore is is not created in this template)
+      # (my mind was also blown)
+      # The role has to allow 'apigateway.amazonaws.com' to assume role with associated managed policy 'AmazonAPIGatewayPushToCloudWatchLogs'
+      # (policy arn: arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs)
+      # https://www.alexdebrie.com/posts/api-gateway-access-logs/#logging-iam-role
+      DefaultRouteSettings:
+        !If
+          - EnableInvocationLogs
+          - DataTraceEnabled: true
+            DetailedMetricsEnabled: true
+            LoggingLevel: INFO
+          - {}
 
   # JOIN FN
   JoinRoute:
@@ -84,19 +109,21 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Runtime: nodejs14.x
-      CodeUri: ./src/
+      CodeUri: ./app
       Handler: index.join
       Policies:
         - AWSLambdaBasicExecutionRole
         # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-template-list.html
         - DynamoDBCrudPolicy:
-            tableName: !Ref ChatTable
+            TableName: !Ref ChatTable
         - &post_to_connection_policy
+          Version: '2012-10-17'
           Statement:
-            Action:
-              - 'execute-api:ManageConnections'
-            Resource:
-              - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SimpleChatWebSocket}/*'
+            - Effect: Allow
+              Action:
+                - execute-api:ManageConnections
+              Resource:
+                - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*'
       Environment:
         Variables:
           TABLE_NAME: !Ref ChatTable
@@ -129,13 +156,13 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Runtime: nodejs14.x
-      CodeUri: ./src/
+      CodeUri: ./app
       Handler: index.leave
       Policies:
         - AWSLambdaBasicExecutionRole
         # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-template-list.html
         - DynamoDBCrudPolicy:
-            tableName: !Ref ChatTable
+            TableName: !Ref ChatTable
         - *post_to_connection_policy
       Environment:
         Variables:
@@ -169,13 +196,13 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Runtime: nodejs14.x
-      CodeUri: ./src/
+      CodeUri: ./app
       Handler: index.postMessage
       Policies:
         - AWSLambdaBasicExecutionRole
         # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-template-list.html
         - DynamoDBCrudPolicy:
-            tableName: !Ref ChatTable
+            TableName: !Ref ChatTable
         - *post_to_connection_policy
       Environment:
         Variables:
@@ -186,7 +213,7 @@ Resources:
     DependsOn: [WebSocketApi]
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref JoinFunction
+      FunctionName: !Ref PostMessageFunction
       Principal: apigateway.amazonaws.com
 
   # DISCONNECT FN
@@ -209,13 +236,13 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Runtime: nodejs14.x
-      CodeUri: ./src/
+      CodeUri: ./app
       Handler: index.disconnect
       Policies:
         - AWSLambdaBasicExecutionRole
         # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-template-list.html
         - DynamoDBCrudPolicy:
-            tableName: !Ref ChatTable
+            TableName: !Ref ChatTable
         - *post_to_connection_policy
       Environment:
         Variables:
@@ -249,13 +276,13 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Runtime: nodejs14.x
-      CodeUri: ./src/
+      CodeUri: ./app
       Handler: index.default
       Policies:
         - AWSLambdaBasicExecutionRole
         # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-template-list.html
         - DynamoDBCrudPolicy:
-            tableName: !Ref ChatTable
+            TableName: !Ref ChatTable
         - *post_to_connection_policy
       Environment:
         Variables:
@@ -271,7 +298,7 @@ Resources:
 
 Outputs:
   Endpoint:
-    Value: !Sub "wss://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/"
+    Value: !Sub "wss://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/${WebsocketStageName}"
   JoinFunction:
     Value: !GetAtt JoinFunction.Arn
   LeaveFunction:

@@ -188,7 +188,7 @@ function withErrorHandling(fn) {
  */
 function postToConnectionWithCleanup(api, repo, connectionId, data) {
     return api
-        .postToConnection({ ConnectionId: connectionId, Data: data })
+        .postToConnection({ ConnectionId: connectionId, Data: JSON.stringify(data) })
         .promise()
         .catch(err =>
             // 410 means the client has already disconnected
@@ -204,6 +204,11 @@ function postToConnectionWithCleanup(api, repo, connectionId, data) {
                               })`,
                           }),
                       )
-                : Promise.reject({ statusCode: 500, body: 'Failed to post to connection' }),
+                : Promise.reject({
+                      statusCode: 500,
+                      body: `Failed to post to connection (${
+                          err instanceof Error ? err.message : ''
+                      })`,
+                  }),
         );
 }
