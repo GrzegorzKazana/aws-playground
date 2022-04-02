@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Document</title>
+    </head>
+    <body>
+        <button id="sub-btn" disabled>Subscribe!</button>
+        <script>
+            const button = document.getElementById('sub-btn');
+
+            const apiUrl = '...';
+            const vapidPublicKey = '...';
+            const subscriptionScope = 'products';
+
+            navigator.serviceWorker.register('sw.js');
+
+            navigator.serviceWorker.ready
+                .then(registration => {
+                    console.log('sw registered');
+
+                    return registration.pushManager.getSubscription();
+                })
+                .then(subscription => {
+                    if (subscription) console.log('sw subscription', subscription);
+
+                    return subscription ? setUnsubscribeButton() : setSubscribeButton();
+                });
+
+            function subscribe() {
+                return navigator.serviceWorker.ready
+                    .then(registration =>
+                        registration.pushManager
+                            .getSubscription()
+                            .then(subscription => {
+                                if (subscription)
+                                    return console.log('sw subscription already present');
+
+                                return registration.pushManager.subscribe({
+                                    userVisibleOnly: true,
+                                    applicationServerKey: vapidPublicKey,
+                                });
+                            })
+                            .then(subscription =>
+                                fetch(apiUrl, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        scope: subscriptionScope,
+                                        subscription,
+                                    }),
+                                }),
+                            ),
+                    )
+                    .then(setUnsubscribeButton)
+                    .catch(console.error);
+            }
+
+            function unsubscribe() {
+                return navigator.serviceWorker.ready
+                    .then(registration => registration.pushManager.getSubscription())
+                    .then(subscription => {
+                        if (!subscription) return console.log('sw no subscription present');
+
+                        subscription
+                            .unsubscribe()
+                            .then(unsubscribed =>
+                                unsubscribed
+                                    ? setSubscribeButton()
+                                    : Promise.reject(new Error('sw failed to unsubscribe')),
+                            )
+                            .then(() =>
+                                fetch(`${apiUrl}/${encodeURIComponent(subscription.endpoint)}`, {
+                                    method: 'DELETE',
+                                }),
+                            );
+                    })
+                    .then(setSubscribeButton)
+                    .catch(console.warn);
+            }
+
+            function setSubscribeButton() {
+                button.removeAttribute('disabled');
+                button.onclick = subscribe;
+                button.textContent = 'Subscribe!';
+            }
+
+            function setUnsubscribeButton() {
+                button.removeAttribute('disabled');
+                button.onclick = unsubscribe;
+                button.textContent = 'Unsubscribe!';
+            }
+        </script>
+    </body>
+</html>
