@@ -1,0 +1,1 @@
+{"errorType":"Error","errorMessage":"Forcefully failed...","trace":["Error: Forcefully failed...","    at Runtime.exports.handler (/var/task/index.js:14:33)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}
