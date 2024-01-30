@@ -1,0 +1,22 @@
+{
+  "name": "@21-sst-recipes/functions",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "sst bind vitest",
+    "typecheck": "tsc -noEmit"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.131",
+    "@types/node": "^20.11.5",
+    "@types/supertest": "^6.0.2",
+    "sst": "^2.39.7",
+    "supertest": "^6.3.4",
+    "vitest": "^1.2.1"
+  },
+  "dependencies": {
+    "electrodb": "^2.13.0",
+    "lambda-api": "^0.12.0",
+    "node-fetch": "^3.3.2"
+  }
+}
