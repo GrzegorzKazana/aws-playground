@@ -4,7 +4,10 @@ import SQS from 'aws-sdk/clients/sqs';
 import { SQSHandler, SQSRecord } from 'aws-lambda';
 import { Table } from 'sst/node/table';
 import { Bucket } from 'sst/node/bucket';
-import { TaskRepository, Project } from '@21-sst-recipes/core/task-repository';
+import {
+    DynamoTaskRepository as TaskRepository,
+    Project,
+} from '@21-sst-recipes/core/task-repository-dynamo';
 import { partitionPromiseSettled } from '@21-sst-recipes/core/utils';
 import { Queue } from 'sst/node/queue';
 

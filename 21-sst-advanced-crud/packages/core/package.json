@@ -1,0 +1,19 @@
+{
+    "name": "@21-sst-recipes/core",
+    "version": "0.0.0",
+    "type": "module",
+    "scripts": {
+        "test": "sst bind vitest",
+        "typecheck": "tsc -noEmit"
+    },
+    "devDependencies": {
+        "vitest": "^1.2.1",
+        "@types/node": "^20.11.5",
+        "@types/pg": "^8.11.0",
+        "sst": "^2.39.7"
+    },
+    "dependencies": {
+        "pg": "^8.11.3",
+        "zod": "^3.22.4"
+    }
+}

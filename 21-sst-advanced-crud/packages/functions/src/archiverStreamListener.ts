@@ -2,7 +2,7 @@ import DynamoDB from 'aws-sdk/clients/dynamodb';
 import SQS from 'aws-sdk/clients/sqs';
 import { DynamoDBStreamHandler } from 'aws-lambda';
 import { Queue } from 'sst/node/queue';
-import { ProjectEntity } from '@21-sst-recipes/core/task-repository';
+import { ProjectEntity } from '@21-sst-recipes/core/task-repository-dynamo';
 import { isNotNullable } from '@21-sst-recipes/core/utils';
 
 const sqs = new SQS({});

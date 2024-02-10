@@ -1,6 +1,10 @@
 import { Request, Response, NextFunction, HandlerFunction } from 'lambda-api';
 import { z, ZodSchema } from 'zod';
 
+export function isNotFalsy<T>(a: T | false | null | undefined | '' | 0): a is T {
+    return !!a;
+}
+
 export function isNotNullable<T>(a: T | null | undefined): a is T {
     return a !== undefined && a !== null;
 }
@@ -46,10 +50,14 @@ export function validatedRoute<
         params?: Params;
     },
     handler: (
-        req: Omit<Request, 'query' | 'body' | 'params'> & {
-            query: z.infer<Query>;
-            body: z.infer<Body>;
-            params: z.infer<Params>;
+        req: {
+            [K in keyof Request]: K extends 'body'
+                ? z.infer<Body>
+                : K extends 'query'
+                ? z.infer<Query>
+                : K extends 'params'
+                ? z.infer<Params>
+                : Request[K];
         },
         res: Response,
         next?: NextFunction,

@@ -2,6 +2,8 @@ import DynamoDB from 'aws-sdk/clients/dynamodb';
 import { Entity, Service, CreateEntityItem, EntityItem, EntityIdentifiers } from 'electrodb';
 import { randomUUID } from 'crypto';
 
+import type { TaskRepository } from './task-repository';
+
 /**
  * Access patterns:
  * get all projects,
@@ -258,7 +260,7 @@ export type ProjectId = string;
 export type TaskId = string;
 export type EmployeeId = string;
 
-export class TaskRepository {
+export class DynamoTaskRepository implements TaskRepository {
     constructor(
         private readonly client: DynamoDB.DocumentClient,
         private readonly table: string,
@@ -464,7 +466,7 @@ export class TaskRepository {
     }
 
     deleteEmployees(employees: EmployeeId[]) {
-        return TaskRepository.exhaustUnprocessedKeys<typeof EmployeeEntity>(
+        return DynamoTaskRepository.exhaustUnprocessedKeys<typeof EmployeeEntity>(
             employees.map(id => ({ id })),
             k => this.service.entities.employee.delete(k).go(),
         );
@@ -474,14 +476,18 @@ export class TaskRepository {
         const tasks = await this.getTasks(project);
         const members = await this.service.entities.members.query.byProject({ project }).go();
 
-        await TaskRepository.exhaustUnprocessedKeys<typeof TaskEntity>(tasks, k =>
+        await DynamoTaskRepository.exhaustUnprocessedKeys<typeof TaskEntity>(tasks, k =>
             this.service.entities.task.delete(k).go(),
         );
-        await TaskRepository.exhaustUnprocessedKeys<typeof ProjectMemberEntity>(members.data, k =>
-            this.service.entities.members.delete(k).go(),
+        await DynamoTaskRepository.exhaustUnprocessedKeys<typeof ProjectMemberEntity>(
+            members.data,
+            k => this.service.entities.members.delete(k).go(),
         );
 
-        return this.service.entities.project.delete({ id: project }).go();
+        return this.service.entities.project
+            .delete({ id: project })
+            .go()
+            .then(({ data }) => data);
     }
 
     /** runs table scan use only in tests and small datasets! */
@@ -491,18 +497,19 @@ export class TaskRepository {
         const members = await this.service.entities.members.scan.go({});
         const tasks = await this.service.entities.task.scan.go({});
 
-        await TaskRepository.exhaustUnprocessedKeys<typeof EmployeeEntity>(
+        await DynamoTaskRepository.exhaustUnprocessedKeys<typeof EmployeeEntity>(
             employees.data,
             async k => this.service.entities.employee.delete(k).go(),
         );
-        await TaskRepository.exhaustUnprocessedKeys<typeof ProjectEntity>(projects.data, async k =>
-            this.service.entities.project.delete(k).go(),
+        await DynamoTaskRepository.exhaustUnprocessedKeys<typeof ProjectEntity>(
+            projects.data,
+            async k => this.service.entities.project.delete(k).go(),
         );
-        await TaskRepository.exhaustUnprocessedKeys<typeof ProjectMemberEntity>(
+        await DynamoTaskRepository.exhaustUnprocessedKeys<typeof ProjectMemberEntity>(
             members.data,
             async k => this.service.entities.members.delete(k).go(),
         );
-        await TaskRepository.exhaustUnprocessedKeys<typeof TaskEntity>(tasks.data, async k =>
+        await DynamoTaskRepository.exhaustUnprocessedKeys<typeof TaskEntity>(tasks.data, async k =>
             this.service.entities.task.delete(k).go(),
         );
     }
