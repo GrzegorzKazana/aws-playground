@@ -1,0 +1,22 @@
+{
+  "name": "@23-sst-auth/core",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "sst bind vitest",
+    "typecheck": "tsc -noEmit"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.134",
+    "@types/node": "^20.11.20",
+    "sst": "^2.40.3",
+    "vitest": "^1.3.1"
+  },
+  "dependencies": {
+    "electrodb": "^2.13.1",
+    "googleapis": "^133.0.0",
+    "jose": "^5.2.2",
+    "lambda-api": "^1.0.3",
+    "zod": "^3.22.4"
+  }
+}

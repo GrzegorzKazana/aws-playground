@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css" />
+        <link rel="stylesheet" href="./style.css" />
+        <title>23-sst-auth</title>
+        <script src="https://accounts.google.com/gsi/client" defer></script>
+        <script type="module" src="./index.js" defer></script>
+    </head>
+    <body>
+        <h1 id="text" class="reveal">hello</h1>
+        <h2 id="subtext" class="reveal">Can access protected resources: <span id="subtext-answer">✅❌</span></h1>
+        <hr />
+        <h2>via redirect</h2>
+        <button type="button" id="login-with-google-redirect-btn" class="login-with-google-btn">
+            Sign in with Google
+        </button>
+        <hr />
+        <h2>via popup</h2>
+        <button type="button" id="login-with-google-popup-btn" class="login-with-google-btn">
+            Sign in with Google
+        </button>
+        <hr />
+        <h2>via google client (implicit flow)</h2>
+        <div id="gsi-container" class="flex-center"></div>
+        <hr />
+        <h2>via google client (authorization flow)</h2>
+        <button type="button" id="login-with-google-client-btn" class="login-with-google-btn">
+            Sign in with Google
+        </button>
+    </body>
+</html>
